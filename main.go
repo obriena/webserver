@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 )
 
 func main() {
@@ -54,10 +53,14 @@ func httpFileLoaderSupportingGET(w http.ResponseWriter, r *http.Request, fileNam
 	switch r.Method {
 	case http.MethodGet:
 		file, err := os.Open(fileName)
-		check(err)
+		if httpCheck(w, r, err) {
+			return
+		}
 		defer file.Close()
 		fileInfo, err := file.Stat()
-		check(err)
+		if httpCheck(w, r, err) {
+			return
+		}
 
 		http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), file)
 	case http.MethodOptions:
@@ -69,16 +72,16 @@ func httpFileLoaderSupportingGET(w http.ResponseWriter, r *http.Request, fileNam
 	}
 }
 
-func readFile() {
-	dat, err := os.ReadFile("/Users/SM58/Development/Digix/digix/README.md")
-	check(err)
-	content := string(dat)
-	lines := strings.Split(content, "\n")
-	log.Println(lines[4])
-}
-
 func check(e error) {
 	if e != nil {
 		panic(e)
 	}
+}
+
+func httpCheck(w http.ResponseWriter, r *http.Request, e error) bool {
+	if e != nil {
+		httpFileLoaderSupportingGET(w, r, "./html/404.html")
+		return true
+	}
+	return false
 }
